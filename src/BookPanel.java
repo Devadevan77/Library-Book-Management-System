@@ -27,7 +27,13 @@ public class BookPanel extends JPanel {
         setLayout(new BorderLayout(10, 10));
         setBackground(Theme.CREAM);
         setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-
+        // Move to the next field when Enter is pressed
+        titleField.addActionListener(e -> authorField.requestFocusInWindow());
+        authorField.addActionListener(e -> isbnField.requestFocusInWindow());
+        isbnField.addActionListener(e -> categoryField.requestFocusInWindow());
+        categoryField.addActionListener(e -> copiesField.requestFocusInWindow());
+        copiesField.addActionListener(e -> addBook());
+        
         // Form
         JPanel form = Theme.panel(new GridLayout(3, 4, 10, 8));
         form.add(Theme.label("Title *"));        form.add(titleField);

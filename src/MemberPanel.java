@@ -16,16 +16,28 @@ public class MemberPanel extends JPanel {
         setBackground(Theme.CREAM);
         setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
 
+        // Move to the next field when Enter is pressed
+        nameField.addActionListener(e -> emailField.requestFocusInWindow());
+        emailField.addActionListener(e -> phoneField.requestFocusInWindow());
+        phoneField.addActionListener(e -> registerMember());
+
         JPanel form = Theme.panel(new GridLayout(2, 4, 10, 8));
-        form.add(Theme.label("Name *"));  form.add(nameField);
-        form.add(Theme.label("Email"));   form.add(emailField);
-        form.add(Theme.label("Phone"));   form.add(phoneField);
-        form.add(Theme.label(""));        form.add(Theme.label(""));
+
+        form.add(Theme.label("Name *"));
+        form.add(nameField);
+        form.add(Theme.label("Email"));
+        form.add(emailField);
+        form.add(Theme.label("Phone *"));
+        form.add(phoneField);
+        form.add(Theme.label(""));
+        form.add(Theme.label(""));
 
         JButton registerBtn = Theme.button("Register Member");
         JButton clearBtn = Theme.button("Clear Form");
+
         registerBtn.addActionListener(e -> registerMember());
         clearBtn.addActionListener(e -> clearForm());
+
         JPanel buttons = Theme.panel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         buttons.add(registerBtn);
         buttons.add(clearBtn);
@@ -44,9 +56,12 @@ public class MemberPanel extends JPanel {
 
     public void refresh() {
         try {
-            DBConnection.loadTable(model,
-                    "SELECT member_id AS ID, name AS Name, email AS Email, phone AS Phone, "
-                  + "joined_date AS Joined FROM members ORDER BY member_id");
+            DBConnection.loadTable(
+                    model,
+                    "SELECT member_id AS ID, name AS Name, email AS Email, "
+                    + "phone AS Phone, joined_date AS Joined "
+                    + "FROM members ORDER BY member_id"
+            );
         } catch (SQLException e) {
             Theme.showError(this, e);
         }
@@ -56,6 +71,8 @@ public class MemberPanel extends JPanel {
         nameField.setText("");
         emailField.setText("");
         phoneField.setText("");
+        nameField.requestFocusInWindow();
+        table.clearSelection();
     }
 
     private void registerMember() {
@@ -65,27 +82,42 @@ public class MemberPanel extends JPanel {
 
         if (name.isEmpty()) {
             Theme.info(this, "Member name is required.");
-            return;
-        }
-        if (!email.isEmpty() && !email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
-            Theme.info(this, "Please enter a valid email address.");
-            return;
-        }
-        if (!phone.isEmpty() && !phone.matches("[0-9+\\- ]{7,15}")) {
-            Theme.info(this, "Phone should contain 7-15 digits (spaces, + and - allowed).");
+            nameField.requestFocusInWindow();
             return;
         }
 
-        String sql = "INSERT INTO members (name, email, phone, joined_date) VALUES (?, ?, ?, CURDATE())";
+        if (!email.isEmpty()
+                && !email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+            Theme.info(this, "Please enter a valid email address.");
+            emailField.requestFocusInWindow();
+            return;
+        }
+
+        // Require exactly 10 digits
+        if (!phone.matches("[0-9]{10}")) {
+            Theme.info(this,
+                    "Phone number must contain exactly 10 digits.");
+            phoneField.requestFocusInWindow();
+            return;
+        }
+
+        String sql = "INSERT INTO members "
+                + "(name, email, phone, joined_date) "
+                + "VALUES (?, ?, ?, CURDATE())";
+
         try (Connection con = DBConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
+
             ps.setString(1, name);
             ps.setString(2, email.isEmpty() ? null : email);
-            ps.setString(3, phone.isEmpty() ? null : phone);
+            ps.setString(3, phone);
+
             ps.executeUpdate();
-            Theme.info(this, "Member registered.");
+
+            Theme.info(this, "Member registered successfully.");
             clearForm();
             refresh();
+
         } catch (SQLException e) {
             Theme.showError(this, e);
         }
